@@ -31,4 +31,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: tovard3v/infiniteclipsfrontend:latest
+          tags: tovard3v/infiniteclips.frontend:latest
