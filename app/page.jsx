@@ -10,7 +10,7 @@ import VideoListItem from "@/components/VideoListItem"
 import axios from 'axios'
 
 // API base URL
-const API_BASE_URL = "http://backend:5000/api"
+const API_BASE_URL = "http://192.168.0.138:5000/api"
 
 export default function VideoDownloader() {
   const [isDarkMode, setIsDarkMode] = useState(true)
