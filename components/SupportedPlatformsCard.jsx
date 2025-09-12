@@ -21,7 +21,7 @@ export default function SupportedPlatformsCard({ themeClasses }) {
 
   return (
     <Card
-      className={`overflow-hidden ${themeClasses.cardBg} ${themeClasses.cardBorder} shadow-xl backdrop-blur-sm`}
+      className={`overflow-hidden ${themeClasses.cardBg} ${themeClasses.cardBorder} shadow-xl backdrop-blur-sm mt-16`}
     >
       <CardHeader className="p-6 border-b border-white/10">
         <CardTitle className={`text-2xl font-bold ${themeClasses.text}`}>

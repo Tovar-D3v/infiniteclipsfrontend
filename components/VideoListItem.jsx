@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Video, Play, Clock, Download, X, Trash } from "lucide-react"
+import { Video, Play, Clock, Download, Trash } from "lucide-react"
 import PlatformIcon from "@/components/PlatformIcon"
 import { extractPlatformName } from "@/components/extractPlatformName"
 
@@ -154,7 +154,15 @@ export default function VideoListItem({ video, handleDownload, handleDelete, the
                 <p className={`text-center font-medium ${themeClasses.textSecondary}`}>
                   {video.statusMessage}
                 </p>
+                <div className="w-full bg-gray-700 rounded-full h-2.5">
+                  <div
+                    className="bg-blue-500 h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${video.progress}%` }}
+                  ></div>
+                </div>
               </div>
+            ) : video.isError ? (
+              <p className="text-center text-red-500 font-medium">{video.statusMessage}</p>
             ) : (
               <Button
                 onClick={handleDownloadClick}

@@ -7,7 +7,6 @@ import Footer from "@/components/footer"
 import Header from "@/components/Header"
 import DownloadForm from "@/components/DownloadForm"
 import VideoListItem from "@/components/VideoListItem"
-import axios from 'axios'
 
 // API base URL
 const API_BASE_URL = "http://192.168.0.138:5000/api"
@@ -58,6 +57,7 @@ export default function VideoDownloader() {
         isDownloading: false,
         statusMessage: "",
         isError: false,
+        progress: 0,
       }
 
       setVideosList(prevList => [...prevList, newVideo])
@@ -75,43 +75,74 @@ export default function VideoDownloader() {
     if (!videoToDownload) return
 
     setVideosList(prevList => prevList.map(video =>
-      video.id === id ? { ...video, isDownloading: true, statusMessage: "Iniciando descarga..." } : video
+      video.id === id ? { ...video, isDownloading: true, statusMessage: "Iniciando descarga...", isError: false, progress: 0 } : video
     ))
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/descargar`, {
-        url: videoToDownload.url,
-        formato: format,
-        calidad: quality,
-        start_time: startTime,
-        end_time: endTime
-      }, {
-        responseType: 'blob',
+      const response = await fetch(`${API_BASE_URL}/descargar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: videoToDownload.url,
+          formato: format,
+          calidad: quality,
+          start_time: startTime,
+          end_time: endTime
+        }),
       })
 
-      const blob = response.data
-      const contentDisposition = response.headers['content-disposition']
-      let filename = "video.mp4" 
-      if (contentDisposition && contentDisposition.indexOf('filename=') !== -1) {
-        filename = contentDisposition.split('filename=')[1].replace(/"/g, '')
+      const { download_id } = await response.json()
+      if (!download_id) {
+        throw new Error('Error al iniciar la descarga.');
       }
+      
+      const eventSource = new EventSource(`${API_BASE_URL}/progress/${download_id}`);
 
-      const downloadUrl = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = downloadUrl
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      window.URL.revokeObjectURL(downloadUrl)
+      eventSource.onmessage = (event) => {
+        const message = event.data;
 
-      setVideosList(prevList => prevList.map(video =>
-        video.id === id ? { ...video, isDownloading: false, statusMessage: "¡Descarga completada!" } : video
-      ))
+        if (message.startsWith('Descargando:')) {
+          const progressStr = message.split(':')[1].trim().split('%')[0];
+          const progress = parseFloat(progressStr);
+          setVideosList(prevList => prevList.map(video =>
+            video.id === id ? { ...video, statusMessage: message, progress: progress } : video
+          ));
+        } else if (message.startsWith('URL:')) {
+          const fileName = message.substring(4);
+          const downloadUrl = `${API_BASE_URL}/download_file/${fileName}`;
+          
+          // Iniciar la descarga automáticamente
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          
+          setVideosList(prevList => prevList.map(video =>
+            video.id === id ? { ...video, isDownloading: false, statusMessage: "Descarga completada." } : video
+          ));
+          eventSource.close();
+        } else {
+          setVideosList(prevList => prevList.map(video =>
+            video.id === id ? { ...video, statusMessage: message } : video
+          ));
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error("SSE Error:", error);
+        setVideosList(prevList => prevList.map(video =>
+          video.id === id ? { ...video, isDownloading: false, isError: true, statusMessage: "Error durante la descarga." } : video
+        ));
+        eventSource.close();
+      };
     } catch (error) {
       setVideosList(prevList => prevList.map(video =>
         video.id === id ? { ...video, isDownloading: false, isError: true, statusMessage: "Error durante la descarga." } : video
-      ))
+      ));
       console.error("Download Error:", error)
     }
   }
